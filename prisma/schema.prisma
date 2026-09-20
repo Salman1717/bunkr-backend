@@ -1,0 +1,77 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum MembershipType {
+  ROOM
+  MESS
+  WATER
+}
+
+model Member {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  isRoomHead   Boolean  @default(false) @map("is_room_head")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  memberships Membership[]
+  headedRooms Room[]       @relation("RoomHead")
+
+  @@map("members")
+}
+
+model Room {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String?
+  headMemberId String?  @map("head_member_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  headMember Member? @relation("RoomHead", fields: [headMemberId], references: [id], onDelete: SetNull)
+  beds       Bed[]
+
+  @@map("rooms")
+}
+
+model Bed {
+  id              String   @id @default(uuid())
+  roomId          String   @map("room_id")
+  name            String
+  defaultRentFils BigInt   @default(65000) @map("default_rent_fils")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+
+  @@unique([roomId, name])
+  @@map("beds")
+}
+
+model Membership {
+  id        String         @id @default(uuid())
+  memberId  String         @map("member_id")
+  type      MembershipType
+  bedId     String?        @map("bed_id")
+  startDate DateTime       @default(now()) @map("start_date")
+  endDate   DateTime?      @map("end_date")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  bed    Bed?   @relation(fields: [bedId], references: [id], onDelete: SetNull)
+
+  @@map("memberships")
+}

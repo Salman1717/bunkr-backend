@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Production build
+dist/
+
+# Environment files
+.env
+.env.local
+
+# Frontend (pushed to separate repository)
+web/
+
+# System / OS
+.DS_Store
+*.log
