@@ -88,10 +88,44 @@ export class MembersService {
             data: {
               memberId,
               type: secType,
-              bedId: secType === 'ROOM' ? dto.bedId : null,
+              bedId: secType === 'ROOM' ? (dto.bedId || null) : null,
               startDate: new Date(),
             },
           });
+        }
+      } else if (dto.bedId !== undefined) {
+        // Direct bed assignment/unassignment without section list
+        if (!dto.bedId) {
+          // Unassign from bed (remove ROOM membership)
+          await tx.membership.deleteMany({
+            where: { memberId, type: 'ROOM' },
+          });
+        } else {
+          // Clear any existing occupant on this target bed first
+          await tx.membership.deleteMany({
+            where: { bedId: dto.bedId, type: 'ROOM' },
+          });
+
+          // Check if member already has ROOM membership
+          const existingRoom = await tx.membership.findFirst({
+            where: { memberId, type: 'ROOM' },
+          });
+
+          if (existingRoom) {
+            await tx.membership.update({
+              where: { id: existingRoom.id },
+              data: { bedId: dto.bedId },
+            });
+          } else {
+            await tx.membership.create({
+              data: {
+                memberId,
+                type: 'ROOM',
+                bedId: dto.bedId,
+                startDate: new Date(),
+              },
+            });
+          }
         }
       }
 

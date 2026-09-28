@@ -105,4 +105,56 @@ export class RoomsService {
       },
     });
   }
+
+  async updateRoom(id: string, dto: { name?: string; description?: string; headMemberId?: string | null }) {
+    const room = await this.prisma.room.findUnique({ where: { id } });
+    if (!room) throw new NotFoundException(`Room with ID ${id} not found`);
+
+    if (dto.name && dto.name !== room.name) {
+      const existing = await this.prisma.room.findUnique({ where: { name: dto.name } });
+      if (existing) throw new ConflictException(`Room with name ${dto.name} already exists`);
+    }
+
+    if (dto.headMemberId) {
+      await this.prisma.member.update({
+        where: { id: dto.headMemberId },
+        data: { isRoomHead: true },
+      });
+    }
+
+    return this.prisma.room.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        description: dto.description,
+        headMemberId: dto.headMemberId,
+      },
+      include: { headMember: true, beds: true },
+    });
+  }
+
+  async updateBed(id: string, dto: { name?: string; defaultRentFils?: string }) {
+    const bed = await this.prisma.bed.findUnique({ where: { id } });
+    if (!bed) throw new NotFoundException(`Bed with ID ${id} not found`);
+
+    return this.prisma.bed.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        defaultRentFils: dto.defaultRentFils ? BigInt(dto.defaultRentFils) : undefined,
+      },
+    });
+  }
+
+  async deleteBed(id: string) {
+    const bed = await this.prisma.bed.findUnique({ where: { id } });
+    if (!bed) throw new NotFoundException(`Bed with ID ${id} not found`);
+    return this.prisma.bed.delete({ where: { id } });
+  }
+
+  async deleteRoom(id: string) {
+    const room = await this.prisma.room.findUnique({ where: { id } });
+    if (!room) throw new NotFoundException(`Room with ID ${id} not found`);
+    return this.prisma.room.delete({ where: { id } });
+  }
 }
