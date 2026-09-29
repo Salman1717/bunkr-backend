@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MembersModule } from './modules/members/members.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
+import { RentModule } from './modules/rent/rent.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { BigIntTransformInterceptor } from './common/interceptors/bigint-transform.interceptor';
 
@@ -13,6 +14,7 @@ import { BigIntTransformInterceptor } from './common/interceptors/bigint-transfo
     AuthModule,
     MembersModule,
     RoomsModule,
+    RentModule,
   ],
   providers: [
     {

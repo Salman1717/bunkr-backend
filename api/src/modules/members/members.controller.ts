@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MembersService } from './members.service';
-import { CreateMemberDto, AssignSectionsDto } from './dto/create-member.dto';
+import { CreateMemberDto, AssignSectionsDto, UpdateMemberDto } from './dto/create-member.dto';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { CurrentUser, JwtPayloadUser } from '../../common/decorators/current-user.decorator';
 
@@ -33,6 +33,17 @@ export class MembersController {
   @ApiOperation({ summary: 'Get a specific member by ID (Admin only)' })
   async findOne(@Param('id') id: string) {
     return this.membersService.findOne(id);
+  }
+
+  @Patch(':id')
+  @UseGuards(AdminGuard)
+  @ApiOperation({ summary: 'Update member profile, roles, sections, and room/bed assignment (Admin only)' })
+  async updateMember(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayloadUser,
+    @Body() dto: UpdateMemberDto,
+  ) {
+    return this.membersService.updateMember(user.id, id, dto);
   }
 
   @Patch(':id/sections')

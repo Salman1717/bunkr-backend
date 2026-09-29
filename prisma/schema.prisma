@@ -13,6 +13,13 @@ enum MembershipType {
   WATER
 }
 
+enum RentStatus {
+  PENDING
+  LOCKED
+  PAID
+  PARTIAL
+}
+
 model Member {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -25,8 +32,9 @@ model Member {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  memberships Membership[]
-  headedRooms Room[]       @relation("RoomHead")
+  memberships    Membership[]
+  headedRooms    Room[]              @relation("RoomHead")
+  rentStatements RoomRentStatement[]
 
   @@map("members")
 }
@@ -75,3 +83,31 @@ model Membership {
 
   @@map("memberships")
 }
+
+model RoomRentStatement {
+  id                  String     @id @default(uuid())
+  memberId            String     @map("member_id")
+  roomId              String?    @map("room_id")
+  bedId               String?    @map("bed_id")
+  billingMonth        String     @map("billing_month")
+  baseRentFils        BigInt     @default(0) @map("base_rent_fils")
+  previousBalanceFils BigInt     @default(0) @map("previous_balance_fils")
+  adjustmentFils      BigInt     @default(0) @map("adjustment_fils")
+  adjustmentReason    String?    @map("adjustment_reason")
+  totalPayableFils    BigInt     @default(0) @map("total_payable_fils")
+  amountPaidFils      BigInt     @default(0) @map("amount_paid_fils")
+  status              RentStatus @default(PENDING)
+  isLocked            Boolean    @default(false) @map("is_locked")
+  paidAt              DateTime?  @map("paid_at")
+  approvedBy          String?    @map("approved_by")
+  paymentMethod       String?    @map("payment_method")
+  notes               String?
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, billingMonth])
+  @@map("room_rent_statements")
+}
+

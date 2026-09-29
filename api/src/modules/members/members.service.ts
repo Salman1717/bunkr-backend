@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateMemberDto, AssignSectionsDto } from './dto/create-member.dto';
+import { CreateMemberDto, AssignSectionsDto, UpdateMemberDto } from './dto/create-member.dto';
 import { MembershipType } from '@prisma/client';
 
 @Injectable()
@@ -47,6 +47,105 @@ export class MembersService {
 
       const { passwordHash: _, ...result } = await tx.member.findUniqueOrThrow({
         where: { id: member.id },
+        include: {
+          memberships: {
+            include: {
+              bed: { include: { room: true } },
+            },
+          },
+        },
+      });
+
+      return result;
+    });
+  }
+
+  async updateMember(actorId: string, memberId: string, dto: UpdateMemberDto) {
+    const member = await this.prisma.member.findUnique({
+      where: { id: memberId },
+    });
+
+    if (!member) {
+      throw new NotFoundException(`Member with ID ${memberId} not found`);
+    }
+
+    if (dto.email && dto.email.toLowerCase() !== member.email) {
+      const existing = await this.prisma.member.findUnique({
+        where: { email: dto.email.toLowerCase() },
+      });
+      if (existing) {
+        throw new ConflictException(`Member with email ${dto.email} already exists`);
+      }
+    }
+
+    let passwordHash: string | undefined = undefined;
+    if (dto.password && dto.password.trim() !== '') {
+      const salt = await bcrypt.genSalt(10);
+      passwordHash = await bcrypt.hash(dto.password, salt);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.member.update({
+        where: { id: memberId },
+        data: {
+          firstName: dto.firstName !== undefined ? dto.firstName : undefined,
+          lastName: dto.lastName !== undefined ? dto.lastName : undefined,
+          email: dto.email !== undefined ? dto.email.toLowerCase() : undefined,
+          isAdmin: dto.isAdmin !== undefined ? dto.isAdmin : undefined,
+          isRoomHead: dto.isRoomHead !== undefined ? dto.isRoomHead : undefined,
+          ...(passwordHash ? { passwordHash } : {}),
+        },
+      });
+
+      if (dto.sections !== undefined) {
+        await tx.membership.deleteMany({
+          where: { memberId },
+        });
+
+        for (const secType of dto.sections) {
+          await tx.membership.create({
+            data: {
+              memberId,
+              type: secType,
+              bedId: secType === 'ROOM' ? (dto.bedId || null) : null,
+              startDate: new Date(),
+            },
+          });
+        }
+      } else if (dto.bedId !== undefined) {
+        if (!dto.bedId) {
+          await tx.membership.deleteMany({
+            where: { memberId, type: 'ROOM' },
+          });
+        } else {
+          await tx.membership.deleteMany({
+            where: { bedId: dto.bedId, type: 'ROOM' },
+          });
+
+          const existingRoom = await tx.membership.findFirst({
+            where: { memberId, type: 'ROOM' },
+          });
+
+          if (existingRoom) {
+            await tx.membership.update({
+              where: { id: existingRoom.id },
+              data: { bedId: dto.bedId },
+            });
+          } else {
+            await tx.membership.create({
+              data: {
+                memberId,
+                type: 'ROOM',
+                bedId: dto.bedId,
+                startDate: new Date(),
+              },
+            });
+          }
+        }
+      }
+
+      const { passwordHash: _, ...result } = await tx.member.findUniqueOrThrow({
+        where: { id: memberId },
         include: {
           memberships: {
             include: {

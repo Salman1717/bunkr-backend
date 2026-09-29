@@ -61,3 +61,47 @@ export class AssignSectionsDto {
   @IsOptional()
   bedId?: string;
 }
+
+export class UpdateMemberDto {
+  @ApiPropertyOptional({ example: 'member@bunkr.ae' })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
+
+  @ApiPropertyOptional({ example: 'NewPassword123!' })
+  @IsString()
+  @IsOptional()
+  @MinLength(6)
+  password?: string;
+
+  @ApiPropertyOptional({ example: 'John' })
+  @IsString()
+  @IsOptional()
+  firstName?: string;
+
+  @ApiPropertyOptional({ example: 'Doe' })
+  @IsString()
+  @IsOptional()
+  lastName?: string;
+
+  @ApiPropertyOptional({ example: false })
+  @IsBoolean()
+  @IsOptional()
+  isAdmin?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsBoolean()
+  @IsOptional()
+  isRoomHead?: boolean;
+
+  @ApiPropertyOptional({ enum: MembershipType, isArray: true, example: ['ROOM', 'MESS', 'WATER'] })
+  @IsArray()
+  @IsOptional()
+  sections?: MembershipType[];
+
+  @ApiPropertyOptional({ example: 'bed-uuid-1' })
+  @IsString()
+  @IsOptional()
+  bedId?: string;
+}
+

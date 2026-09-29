@@ -28,11 +28,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         firstName: true,
         lastName: true,
         isAdmin: true,
+        isRoomHead: true,
+        isActive: true,
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('User no longer exists');
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User no longer exists or account disabled');
     }
 
     return user;
